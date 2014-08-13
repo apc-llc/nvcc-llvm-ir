@@ -1,0 +1,24 @@
+Dump of assembler code from 0x7ffff6de24ad to 0x7ffff6de24ed:
+   0x00007ffff6de24ad:	mov    %rax,(%r12)
+   0x00007ffff6de24b1:	mov    %rbp,%rdi
+   0x00007ffff6de24b4:	add    0x2b0(%rsp),%rdi
+   0x00007ffff6de24bc:	mov    %rbx,%rdx
+   0x00007ffff6de24bf:	mov    (%rcx),%rax
+   0x00007ffff6de24c2:	xor    %ecx,%ecx
+   0x00007ffff6de24c4:	mov    (%rax,%rbp,1),%rsi
+=> 0x00007ffff6de24c8:	callq  0x7ffff77ff4e0
+   0x00007ffff6de24cd:	mov    0xd0(%rsp),%rsi
+   0x00007ffff6de24d5:	mov    (%rsi),%rax
+   0x00007ffff6de24d8:	mov    (%rax,%rbp,1),%rax
+   0x00007ffff6de24dc:	add    $0x8,%rbp
+   0x00007ffff6de24e0:	movb   $0x0,(%rax,%rbx,1)
+   0x00007ffff6de24e4:	mov    0xd8(%rsp),%rax
+   0x00007ffff6de24ec:	cmp    %r13d,(%rax)
+End of assembler dump.
+(gdb) p ((char**)$rdi)[0]@20
+$17 = {0x1080098 "opt", 0x10800f8 "-nv-cuda", 0x1080188 "-nvvm-pretreat", 0x10801e8 "-generic-to-nvvm", 0x1080228 "-nv-inline-must", 0x1080328 "-R", 
+  0x1080358 "__CUDA_PREC_DIV=1", 0x1080408 "-R", 0x1080438 "__CUDA_PREC_SQRT=1", 0x1080628 "-opt-arch=sm_30", 0x1080778 "-inline", 0x10807a8 "-globaldce", 
+  0x10805e8 "-lower-struct-args", 0x10807d8 "-memory-space-opt=1", 0x1080818 "-disable-rsqrt-opt=1", 0x1080858 "-O3", 
+  0xc9c410 "P", <incomplete sequence \312>, 0x41 <error: Cannot access memory at address 0x41>, 0x15 <error: Cannot access memory at address 0x15>, 
+  0x15 <error: Cannot access memory at address 0x15>}
+

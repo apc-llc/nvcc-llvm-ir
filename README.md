@@ -17,7 +17,7 @@ Some of passes mnemonics do not exist in standard LLVM 3.0, meaning they are lik
 
 In order to remove this limiations, we have created a special dynamic library. Being attached to NVIDIA CUDA compiler, this library exposes unoptimized and optimized LLVM IR code to the user and allows its on-the-fly modification. As result, domain-specific compiler developer receives flexibility e.g. to retarget CUDA-generated LLVM IR to different architectures, or to make additional modifications to IR after NVIDIA's optimization set. Below we explain the technical details of how unoptimized and optimized LLVM IR versions have been retrieved from CUDA compiler by our dynamic library.
 
-## NVIDIA CUDA compiler general review
+## NVIDIA CUDA compiler overview
 
 NVIDIA CUDA compiler is a complex set of pipelined code processing binaries. After the input source is preprocessed and decomposed into separate host and device sources, compiler driver (*nvcc*) deploys CUDA-to-LLVM compiler -- *cicc*, which shall be our main point of interest.
 

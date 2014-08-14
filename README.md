@@ -1,6 +1,6 @@
 # Enabling on-the-fly manipulations with LLVM IR code of CUDA sources
 
-Largerly thanks to [LLVM](http://llvm.org/), in recent years we've seen a significant increase of interest to domain-specific compilation tools research & development. With the release of PTX backends by NVIDIA (opensource [NVPTX](http://llvm.org/docs/NVPTXUsage.html) and proprietary [libNVVM](https://developer.nvidia.com/cuda-llvm-compiler)), construction of custom LLVM-driven compilers for generating GPU binaries also becomes possible. However, two questions are still remaining:
+Largely thanks to [LLVM](http://llvm.org/), in recent years we've seen a significant increase of interest to domain-specific compilation tools research & development. With the release of PTX backends by NVIDIA (opensource [NVPTX](http://llvm.org/docs/NVPTXUsage.html) and proprietary [libNVVM](https://developer.nvidia.com/cuda-llvm-compiler)), construction of custom LLVM-driven compilers for generating GPU binaries also becomes possible. However, two questions are still remaining:
 
 1. How to customize the CUDA source compilation?
 2. What is the best set of GPU-specific LLVM optimizations and how to continue modifying IR after applying them?
@@ -15,7 +15,7 @@ opt -nv-cuda -nvvm-pretreat -generic-to-nvvm -nv-inline-must -R __CUDA_PREC_DIV=
 
 Some of passes mnemonics do not exist in standard LLVM 3.0, meaning they are likely NVIDIA's proprietary extensions. Thus, GPU code generation could not be fully reproduced by opensource NVPTX backend. On the other hand, if libNVVM backend is used, then input LLVM IR is translated directly into PTX code, without possibility to review and modify the optimized IR before PTX generation.
 
-In order to remove this limiations, we have created a special dynamic library. Being attached to NVIDIA CUDA compiler, this library exposes unoptimized and optimized LLVM IR code to the user and allows its on-the-fly modification. As result, domain-specific compiler developer receives flexibility e.g. to retarget CUDA-generated LLVM IR to different architectures, or to make additional modifications to IR after NVIDIA's optimization set. Below we explain the technical details of how unoptimized and optimized LLVM IR versions have been retrieved from CUDA compiler by our dynamic library.
+In order to remove this limitations, we have created a special dynamic library. Being attached to NVIDIA CUDA compiler, this library exposes unoptimized and optimized LLVM IR code to the user and allows its on-the-fly modification. As result, domain-specific compiler developer receives flexibility e.g. to re-target CUDA-generated LLVM IR to different architectures, or to make additional modifications to IR after executing NVIDIA's optimizations. Below we explain the technical details of how unoptimized and optimized LLVM IR versions have been retrieved from CUDA compiler by our dynamic library.
 
 ## NVIDIA CUDA compiler overview
 
@@ -41,7 +41,7 @@ if (!initial_module)
 outs() << *initial_module;
 ```
 
-On-the-fly modification of unoptimized LLVM could be archieved by exporting LLVM Module back into bitcode string:
+On-the-fly modification of unoptimized LLVM could be achieved by exporting LLVM Module back into bitcode string:
 
 ```
 SmallVector<char, 128> output;
@@ -57,7 +57,7 @@ Note the unoptimized LLVM IR does not include math and GPU-specific builtins, th
 
 ## Optimized LLVM IR retrieval
 
-The libNVVM library itself statically links to NVIDIA's customized LLVM engine, and like most of other binaries in CUDA Toolkit is fully stripped (no debug info, no function frames, etc.). Fortunately, libNVVM is still dynamically linked against the standard C library, which allows to analyse memory allocations and data transfers. Instrumentation of `malloc` function reveals Module-sized space allocation in the beginning of `nvvmCompileProgam`:
+The libNVVM library itself statically links to NVIDIA's customized LLVM engine, and like most of other binaries in CUDA Toolkit is fully stripped (no debug info, no function frames, etc.). Fortunately, libNVVM is still dynamically linked against the standard C library, which allows to analyze memory allocations and data transfers. Instrumentation of `malloc` function reveals Module-sized space allocation in the beginning of `nvvmCompileProgam`:
 
 ```
 void* result = malloc_real(size);
@@ -69,7 +69,7 @@ if (called_compile)
 }
 ```
 
-Luckly, this very Module instance exists during entire compilation process, and accumulates all changes made to input LLVM IR by optimization passes. Thus, we only need to find an appropriate moment to intercept this Module and modify its contents. The subsequent call to `localtime` is used as heuristic. Unlike the unoptimized case, this Module could be printed and modified directly, without loading/storing any bitcode.
+Luckily, this very Module instance exists during entire compilation process, and accumulates all changes made to input LLVM IR by optimization passes. Thus, we only need to find an appropriate moment to intercept this Module and modify its contents. The subsequent call to `localtime` is used as heuristic. Unlike the unoptimized case, this Module could be printed and modified directly, without loading/storing any bitcode.
 
 Retrieved optimized LLVM IR is linked together with math and GPU-specific builtins and is ready for PTX backend.
 

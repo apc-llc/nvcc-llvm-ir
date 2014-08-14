@@ -95,7 +95,7 @@ The LLVM IR retrieval mode is specified by two environment variables:
 * `CICC_MODIFY_UNOPT_MODULE=1` -- retrieve unoptimized LLVM IR and change it as specified in `modifyModule` function (`cicc.cpp` source file)
 * `CICC_MODIFY_OPT_MODULE=1` -- retrieve unoptimized LLVM IR and change it as specified in `modifyModule` function (`cicc.cpp` source file)
 
-Example `modifyModule` just adds suffix to all kernel names:
+Example `modifyModule` simply adds suffix to all existing functions names:
 
 ```
 void modifyModule(Module* module)

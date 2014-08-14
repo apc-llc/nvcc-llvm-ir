@@ -1,5 +1,7 @@
+#include <llvm/Constants.h>
 #include <llvm/Module.h>
 #include <llvm/LLVMContext.h>
+#include <llvm/Instructions.h>
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/raw_ostream.h>
@@ -9,6 +11,7 @@
 #include <iostream>
 #include <cstdio>
 #include <string>
+#include <sstream>
 
 using namespace llvm;
 using namespace std;
@@ -43,13 +46,93 @@ if (!sym##_real) \
 
 Module* initial_module = NULL;
 
-void modifyModule(Module* module)
+// Modify module: perform store instructions in threadIdx.x = 0 only.
+void storeInZeroThreadOnly(Module* module)
 {
 	if (!module) return;
 
+	Type* int32Ty = Type::getInt32Ty(module->getContext());
+	Value* zero = ConstantInt::get(int32Ty, 0);
+
+	const char* threadIdxName = "llvm.nvvm.read.ptx.sreg.tid.x";
+	Function* threadIdx = module->getFunction(threadIdxName);
+	if (!threadIdx)
+	{
+		FunctionType* ft = FunctionType::get(int32Ty, std::vector<Type*>(), false);
+		threadIdx = Function::Create(ft, Function::ExternalLinkage, threadIdxName, module);
+	}
+
 	// Add suffix to function name, for example.
-	for (Module::iterator i = module->begin(), e = module->end(); i != e; i++)
-		i->setName(i->getName() + "_modified");
+	for (Module::iterator fi = module->begin(), fe = module->end(); fi != fe; fi++)
+	{
+		int nsplits = 0;
+		BasicBlock* restart = NULL;
+		do
+		{
+			for (Function::iterator bi = fi->begin(), be = fi->end(); bi != be; bi++)
+			{
+				BasicBlock* b = bi;
+				if (restart && (b != restart)) continue;
+		
+				for (BasicBlock::iterator ii = b->begin(), ie = b->end(); ii != ie; ii++)
+				{
+					restart = NULL;
+
+					StoreInst* si = dyn_cast<StoreInst>(cast<Value>(ii));
+					if (!si) continue;
+			
+					// Move StoreInst and all insts below StoreInst to a new block.
+					BasicBlock *nb1 = NULL;
+					{
+						BasicBlock::iterator SplitIt = ii;
+						while (isa<PHINode>(SplitIt) || isa<LandingPadInst>(SplitIt))
+							SplitIt++;
+						stringstream name;
+						name << ".store_" << nsplits;
+						nb1 = bi->splitBasicBlock(SplitIt, b->getName() + name.str());
+					}
+				
+					BasicBlock::iterator nii1 = nb1->begin();
+					nii1++;
+
+					// Move all insts below StoreInst to a new block.
+					BasicBlock *nb2 = NULL;
+					{
+						BasicBlock::iterator SplitIt = nii1;
+						while (isa<PHINode>(SplitIt) || isa<LandingPadInst>(SplitIt))
+							SplitIt++;				
+						stringstream name;
+						name << ".else_" << nsplits;
+						nb2 = nb1->splitBasicBlock(SplitIt, b->getName() + name.str());
+					}
+
+					// Call intrinsic to retrieve threadIdx value.
+					Value* tid = CallInst::Create(threadIdx, "", b->getTerminator());
+				
+					// Check if threadIdx is equal to zero. 
+					Value* cond = new ICmpInst(b->getTerminator(),
+						ICmpInst::ICMP_EQ, tid, zero, "");
+
+					// Nuke the old uncond branch.
+					b->getTerminator()->eraseFromParent();
+
+					// Conditionaly branch to nb1 or nb2, depending on threadIdx.
+					BranchInst* bi = BranchInst::Create(nb1, nb2, cond, b);
+
+					nsplits++;
+				
+					// Continue iterating basic blocks from nb2.
+					restart = nb2;
+					break;
+				}
+			
+				if (restart) break;
+			}
+		}
+		while (restart);
+	}
+
+	outs() << *module << "\n";
 }
 
 bool called_compile = false;
@@ -72,13 +155,12 @@ nvvmResult nvvmAddModuleToProgram(nvvmProgram prog, const char *bitcode, size_t 
 		if (!initial_module)
 			cerr << "Error parsing module bitcode : " << err;
 
-		modifyModule(initial_module);
-
 		printf("\n===========================\n");
 		printf("MODULE BEFORE OPTIMIZATIONS\n");
 		printf("===========================\n\n");		
 
-		outs() << *initial_module;
+		// Modify module: perform store instructions in threadIdx.x = 0 only.
+		storeInZeroThreadOnly(initial_module);
 
 		// Save module back into bitcode.
 		SmallVector<char, 128> output;
@@ -140,14 +222,12 @@ struct tm *localtime(const time_t *timep)
 	{
 		localtime_first_call = false;
 
-		modifyModule(optimized_module);
-
 		printf("\n==========================\n");
 		printf("MODULE AFTER OPTIMIZATIONS\n");
 		printf("==========================\n\n");
 
-		if (optimized_module)
-			outs() << *optimized_module;
+		// Modify module: perform store instructions in threadIdx.x = 0 only.
+		storeInZeroThreadOnly(optimized_module);
 	}
 	
 	return localtime_real(timep);

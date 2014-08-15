@@ -1,4 +1,4 @@
-.PHONY: test test_unopt test_opt
+.PHONY: test test1 test1_unopt test1_opt test2 test2_unopt test2_opt
 
 all: libcicc.so libnvcc.so
 
@@ -11,11 +11,21 @@ libnvcc.so: nvcc.cpp
 clean:
 	rm -rf libcicc.so libnvcc.so
 
-test: test_unopt test_opt
+test: test1 test2
 
-test_unopt: libcicc.so libnvcc.so
-	CICC_MODIFY_UNOPT_MODULE=1 LD_PRELOAD=./libnvcc.so nvcc -arch=sm_30 test.cu -rdc=true -c -keep
+test1: test1_unopt test1_opt
 
-test_opt: libcicc.so libnvcc.so
-	CICC_MODIFY_OPT_MODULE=1 LD_PRELOAD=./libnvcc.so nvcc -arch=sm_30 test.cu -rdc=true -c -keep
+test1_unopt: libcicc.so libnvcc.so
+	CICC_MODIFY_UNOPT_MODULE=1 LD_PRELOAD=./libnvcc.so nvcc -arch=sm_30 test1.cu -rdc=true -c -keep
+
+test1_opt: libcicc.so libnvcc.so
+	CICC_MODIFY_OPT_MODULE=1 LD_PRELOAD=./libnvcc.so nvcc -arch=sm_30 test1.cu -rdc=true -c -keep
+
+test2: test2_unopt test2_opt
+
+test2_unopt: libcicc.so libnvcc.so
+	CICC_MODIFY_UNOPT_MODULE=1 LD_PRELOAD=./libnvcc.so nvcc -arch=sm_30 test2.cu -rdc=true -c -keep
+
+test2_opt: libcicc.so libnvcc.so
+	CICC_MODIFY_OPT_MODULE=1 LD_PRELOAD=./libnvcc.so nvcc -arch=sm_30 test2.cu -rdc=true -c -keep
 

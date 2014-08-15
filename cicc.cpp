@@ -65,7 +65,6 @@ static bool followParallelBasicBlock(BasicBlock* bb, list<BasicBlock*>& pbl, int
 			Function *callee = dyn_cast<Function>(
 				ci->getCalledValue()->stripPointerCasts());
 			if (!callee) continue;
-outs() << callee->getName() << "\n";
 			if (callee->getName() == "begin_parallel_region")
 			{
 				fprintf(stderr, "nvcc-llvm-ir: nested parallel regions are not supported\n");
@@ -84,19 +83,8 @@ outs() << callee->getName() << "\n";
 					nb1 = bb->splitBasicBlock(SplitIt, bb->getName() + name.str());
 				}
 
-				BasicBlock::iterator nii1 = nb1->begin();
-				nii1++;
-
-				// Move all insts below CallInst to a new block.
-				BasicBlock *nb2 = NULL;
-				{
-					BasicBlock::iterator SplitIt = nii1;
-					while (isa<PHINode>(SplitIt) || isa<LandingPadInst>(SplitIt))
-						SplitIt++;				
-					stringstream name;
-					name << ".after_parallel_" << nparallel;
-					nb2 = nb1->splitBasicBlock(SplitIt, bb->getName() + name.str());
-				}
+				// Nuke end_parallel_region call.
+				nb1->begin()->eraseFromParent();
 				
 				// The end of parallel region has been found - leave now.
 				return true;
@@ -113,7 +101,6 @@ outs() << callee->getName() << "\n";
 				BasicBlock* succ = bi->getSuccessor(i);
 				if (find(pbl.begin(), pbl.end(), succ) != pbl.end()) continue;
 				pbl.push_back(succ);
-outs() << *succ << "\n";
 				result |= followParallelBasicBlock(succ, pbl, nparallel);
 			}
 		}
@@ -203,33 +190,22 @@ static void markParallelBasicBlocks(Module* module, vector<BasicBlock*>& paralle
 						while (isa<PHINode>(SplitIt) || isa<LandingPadInst>(SplitIt))
 							SplitIt++;
 						stringstream name;
-						name << ".before_parallel_" << nparallel;
+						name << ".begin_parallel_" << nparallel;
 						nb1 = bi->splitBasicBlock(SplitIt, b->getName() + name.str());
 					}
 				
-					BasicBlock::iterator nii1 = nb1->begin();
-					nii1++;
-
-					// Move all insts below CallInst to a new block.
-					BasicBlock *nb2 = NULL;
-					{
-						BasicBlock::iterator SplitIt = nii1;
-						while (isa<PHINode>(SplitIt) || isa<LandingPadInst>(SplitIt))
-							SplitIt++;				
-						stringstream name;
-						name << ".begin_parallel_" << nparallel;
-						nb2 = nb1->splitBasicBlock(SplitIt, b->getName() + name.str());
-					}
+					// Nuke begin_parallel_region call.
+					nb1->begin()->eraseFromParent();
 					
-					// Add nb2 to the list of parallel blocks.
-					pbl.push_back(nb2);
+					// Add nb1 to the list of parallel blocks.
+					pbl.push_back(nb1);
 					
-					// Starting form nb2, follow all braches of parallel region, marking target
+					// Starting form nb1, follow all braches of parallel region, marking target
 					// blocks as parallel. Continue until returning back into block marked as
 					// parallel, or until the end_parallel_region call is approached.
 					// However, the only valid stopping condition is end_parallel_region, which
 					// is indicated by "true" return value.
-					if (!followParallelBasicBlock(nb2, pbl, nparallel))
+					if (!followParallelBasicBlock(nb1, pbl, nparallel))
 					{
 						fprintf(stderr, "nvcc-llvm-ir: unmatched begin_parallel_region found\n");
 						exit(1);
@@ -238,7 +214,7 @@ static void markParallelBasicBlocks(Module* module, vector<BasicBlock*>& paralle
 					nparallel++;
 
 					// Continue iterating basic blocks from nb2.
-					restart = nb2;
+					restart = nb1;
 					break;
 				}
 			
@@ -352,7 +328,7 @@ static void modifyModule(Module* module)
 	// Perform store instructions in threadIdx.x = 0 only.
 	storeInZeroThreadOnly(module, parallelBlocks);
 
-	outs() << *module << "\n";
+	//outs() << *module << "\n";
 }
 
 static bool called_compile = false;

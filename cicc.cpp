@@ -227,6 +227,10 @@ static void markParallelBasicBlocks(Module* module, vector<BasicBlock*>& paralle
 	// Export parallel blocks list into vector.
 	parallelBlocks.reserve(pbl.size());
 	parallelBlocks.assign(pbl.begin(), pbl.end());
+
+	// Remove parallel region marks declarations.
+	begin_parallel_region->eraseFromParent();
+	end_parallel_region->eraseFromParent();
 }
 
 // Perform store instructions in threadIdx.x = 0 only.
@@ -328,7 +332,7 @@ static void modifyModule(Module* module)
 	// Perform store instructions in threadIdx.x = 0 only.
 	storeInZeroThreadOnly(module, parallelBlocks);
 
-	//outs() << *module << "\n";
+	outs() << *module << "\n";
 }
 
 static bool called_compile = false;

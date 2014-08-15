@@ -1,10 +1,12 @@
 #include <llvm/Constants.h>
-#include <llvm/Module.h>
-#include <llvm/LLVMContext.h>
 #include <llvm/Instructions.h>
+#include <llvm/LLVMContext.h>
+#include <llvm/Module.h>
+#include "llvm/PassManager.h"
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/raw_ostream.h>
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <nvvm.h>
 
 #include <dlfcn.h>
@@ -331,6 +333,16 @@ static void modifyModule(Module* module)
 
 	// Perform store instructions in threadIdx.x = 0 only.
 	storeInZeroThreadOnly(module, parallelBlocks);
+
+	// Rerunning -O3 optimization after our modifications.
+	PassManager manager;
+	PassManagerBuilder builder;
+	builder.Inliner = 0;
+	builder.OptLevel = 3;
+	builder.SizeLevel = 3;
+	builder.DisableUnrollLoops = true;
+	builder.populateModulePassManager(manager);
+	manager.run(*module);
 
 	outs() << *module << "\n";
 }

@@ -3,7 +3,7 @@
 all: libcicc.so libnvcc.so
 
 libcicc.so: cicc.cpp
-	g++ -g -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -I/opt/llvm-3.0_debug/include -I/opt/cuda/nvvm/include/ -fPIC $< -shared -o $@ -ldl -L/opt/llvm-3.0_debug/lib -Wl,--start-group -lLLVMCore -lLLVMSupport -lLLVMipo -lLLVMipa -lLLVMAnalysis -lLLVMTarget -lLLVMScalarOpts -lLLVMTransformUtils -lLLVMInstCombine -Wl,--end-group -lpthread
+	g++ -g -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -I/opt/llvm-3.0/include -I/opt/cuda/nvvm/include/ -fPIC $< -shared -o $@ -ldl -L/opt/llvm-3.0/lib -Wl,--start-group -lLLVMCore -lLLVMSupport -lLLVMipo -lLLVMipa -lLLVMAnalysis -lLLVMTarget -lLLVMScalarOpts -lLLVMTransformUtils -lLLVMInstCombine -Wl,--end-group -lpthread
 
 libnvcc.so: nvcc.cpp
 	g++ -g -I/opt/cuda/nvvm/include/ -fPIC $< -shared -o $@ -ldl

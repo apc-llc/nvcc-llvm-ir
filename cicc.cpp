@@ -335,16 +335,16 @@ static void modifyModule(Module* module)
 	storeInZeroThreadOnly(module, parallelBlocks);
 
 	// Rerunning -O3 optimization after our modifications.
-	PassManager manager;
+	/*PassManager manager;
 	PassManagerBuilder builder;
 	builder.Inliner = 0;
 	builder.OptLevel = 3;
 	builder.SizeLevel = 3;
 	builder.DisableUnrollLoops = true;
 	builder.populateModulePassManager(manager);
-	manager.run(*module);
+	manager.run(*module);*/
 
-	outs() << *module << "\n";
+	//outs() << *module << "\n";
 }
 
 static bool called_compile = false;

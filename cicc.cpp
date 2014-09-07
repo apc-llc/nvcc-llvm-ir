@@ -49,7 +49,8 @@ void modifyModule(Module* module)
 
 	// Add suffix to function name, for example.
 	for (Module::iterator i = module->begin(), e = module->end(); i != e; i++)
-		i->setName(i->getName() + "_modified");
+		if (!i->isIntrinsic())
+			i->setName(i->getName() + "_modified");
 }
 
 bool called_compile = false;

@@ -386,7 +386,6 @@ nvvmResult nvvmAddModuleToProgram(nvvmProgram prog, const char *bitcode, size_t 
 }
 
 #undef bind_lib
-#undef bind_sym
 
 #define LIBC "libc.so.6"
 
@@ -398,20 +397,7 @@ if (!libc) \
 	libc = dlopen(lib, RTLD_NOW | RTLD_GLOBAL); \
 	if (!libc) \
 	{ \
-		cerr << "Error loading " << lib << ": " << dlerror() << endl; \
-		abort(); \
-	} \
-}
-
-#define bind_sym(handle, sym, retty, ...) \
-typedef retty (*sym##_func_t)(__VA_ARGS__); \
-static sym##_func_t sym##_real = NULL; \
-if (!sym##_real) \
-{ \
-	sym##_real = (sym##_func_t)dlsym(handle, #sym); \
-	if (!sym##_real) \
-	{ \
-		cerr << "Error loading " << #sym << ": " << dlerror() << endl; \
+		fprintf(stderr, "Error loading %s: %s\n", lib, dlerror()); \
 		abort(); \
 	} \
 }

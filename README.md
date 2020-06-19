@@ -147,5 +147,5 @@ $ cat test.ptx
 
 ## Final credits
 
-This library has been developed for the purpose of software interoperability and used in compilation of [https://github.com/apc-llc/sixtrack](CERN SixTrack application).
+This library has been developed for the purpose of software interoperability and used in compilation of [CERN SixTrack application](https://github.com/apc-llc/sixtrack).
 

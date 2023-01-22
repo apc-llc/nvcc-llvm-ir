@@ -1,3 +1,6 @@
+// This wrapper monitors the nvcc driver program. If the driver program
+// executes cicc, then we prepend its execution with our preloaded library.
+
 #include <cstdio>
 #include <cstdlib>
 #include <dlfcn.h>
@@ -22,12 +25,15 @@ __attribute__((constructor)) static void activate(int argc, char** argv)
 	if (!endsWith(progname, "cicc"))
 		return;
 
-	stringstream s;
-	s << "LD_PRELOAD=./libcicc.so " << argv[0];
+	stringstream ss;
+	ss << "LD_PRELOAD=" << LIBCICC << " " << argv[0];
 	for (int i = 1; i < argc; i++)
-		s << " " << argv[i];
+	{
+		string arg = argv[i];
+		ss << " " << arg;
+	}
 
-	string cmd = s.str();
+	string cmd = ss.str();
 	int result = system(cmd.c_str());
 	exit(result);
 }

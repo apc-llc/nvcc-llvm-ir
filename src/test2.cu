@@ -15,3 +15,6 @@ extern "C" __device__ void kernel(int n, int* inputs, int* outputs)
 
 	outputs[n - 1] = n - 1;
 }
+
+int main() { return 0; }
+

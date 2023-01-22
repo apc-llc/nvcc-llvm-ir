@@ -1,12 +1,13 @@
-#include <llvm/Constants.h>
-#include <llvm/Instructions.h>
-#include <llvm/LLVMContext.h>
-#include <llvm/Module.h>
-#include "llvm/PassManager.h"
-#include <llvm/Bitcode/ReaderWriter.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/raw_ostream.h>
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <nvvm.h>
 
 #include <dlfcn.h>
@@ -167,7 +168,7 @@ static void markParallelBasicBlocks(Module* module, vector<BasicBlock*>& paralle
 		{
 			for (Function::iterator bi = fi->begin(), be = fi->end(); bi != be; bi++)
 			{
-				BasicBlock* b = bi;
+				BasicBlock* b = &*bi;
 				if (restart && (b != restart)) continue;
 
 				restart = NULL;
@@ -259,7 +260,7 @@ static void storeInZeroThreadOnly(Module* module, vector<BasicBlock*>& parallelB
 		{
 			for (Function::iterator bi = fi->begin(), be = fi->end(); bi != be; bi++)
 			{
-				BasicBlock* b = bi;
+				BasicBlock* b = &*bi;
 				if (restart && (b != restart)) continue;
 
 				restart = NULL;
@@ -360,20 +361,19 @@ nvvmResult nvvmAddModuleToProgram(nvvmProgram prog, const char *bitcode, size_t 
 		string source = "";
 		source.reserve(size);
 		source.assign(bitcode, bitcode + size);
-		MemoryBuffer *input = MemoryBuffer::getMemBuffer(source);
-		string err;
-		LLVMContext &context = getGlobalContext();
-		initial_module = ParseBitcodeFile(input, context, &err);
+		auto input = MemoryBuffer::getMemBuffer(source);
+		LLVMContext context;
+		auto m = parseBitcodeFile(input.get()->getMemBufferRef(), context);
+		initial_module = m.get().get();
 		if (!initial_module)
-			cerr << "Error parsing module bitcode : " << err;
+			cerr << "Error parsing module bitcode" << endl;
 
 		modifyModule(initial_module);
 
 		// Save module back into bitcode.
 		SmallVector<char, 128> output;
 		raw_svector_ostream outputStream(output);
-		WriteBitcodeToFile(initial_module, outputStream);
-		outputStream.flush();
+		WriteBitcodeToFile(*initial_module, outputStream);
 
 		// Call real nvvmAddModuleToProgram
 		return nvvmAddModuleToProgram_real(prog, output.data(), output.size(), name);
@@ -429,7 +429,7 @@ struct sbrk_t { void* address; size_t size; };
 static sbrk_t sbrks[MAX_SBRKS];
 static int nsbrks = 0;
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static std::mutex mtx;
 
 extern "C" void* malloc(size_t size)
 {
@@ -461,13 +461,13 @@ extern "C" void* malloc(size_t size)
 	if (nsbrks == MAX_SBRKS)
 	{
 		fprintf(stderr, "Out of sbrk tracking pool space\n");
-		pthread_mutex_unlock(&mutex);
+		mtx.unlock();
 		abort();
 	}
-	pthread_mutex_lock(&mutex);
+	mtx.lock();
 	sbrk_t s; s.address = result; s.size = size;
 	sbrks[nsbrks++] = s;
-	pthread_mutex_unlock(&mutex);
+	mtx.unlock();
 
 	return result;
 }
@@ -494,10 +494,10 @@ extern "C" void free(void* ptr)
 	bind_lib(LIBC);
 	bind_sym(libc, free, void, void*);
 
-	pthread_mutex_lock(&mutex);
+	mtx.lock();
 	for (int i = 0; i < nsbrks; i++)
 		if (ptr == sbrks[i].address) return;
-	pthread_mutex_unlock(&mutex);
+	mtx.unlock();
 	
 	free_real(ptr);
 }

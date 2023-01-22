@@ -28,11 +28,17 @@ endif()
 target_compile_definitions(cicc PRIVATE ${LLVM_DEFINITIONS_LIST})
 target_compile_options(cicc PRIVATE $<$<BOOL:${MSVC}>:/wd4624> $<$<BOOL:${MSVC}>:/wd4291> $<$<BOOL:${MSVC}>:/MT>)
 target_link_directories(cicc PRIVATE ${LLVM_LIBRARY_DIRS})
-target_link_libraries(cicc PRIVATE ${LLVM_LIBRARIES})
+
+# With older LLVM releases, instead of just linking agains ${LLVM_LIBRARIES},
+# we have to use this idiotic procedure:
+# https://llvm.org/docs/CMake.html#embedding-llvm-in-your-project
+# Find the libraries that correspond to the LLVM components we wish to use
+llvm_map_components_to_libnames(llvm_libs core support ipo analysis target scalaropts transformutils instcombine)
+target_link_libraries(cicc PRIVATE ${llvm_libs})
 
 add_library(nvcc SHARED "src/nvcc.cpp")
 target_link_libraries(nvcc ${CMAKE_DL_LIBS})
-target_compile_definitions(nvcc PRIVATE LIBCICC="$<TARGET_FILE:cicc")
+target_compile_definitions(nvcc PRIVATE LIBCICC="$<TARGET_FILE:cicc>")
 
 add_executable(${PROJECT_NAME} "src/${PROJECT_NAME}.cpp")
 target_compile_definitions(${PROJECT_NAME} PRIVATE LIBNVCC="$<TARGET_FILE:nvcc>")

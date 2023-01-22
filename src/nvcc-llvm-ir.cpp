@@ -12,6 +12,14 @@
 
 using namespace std;
 
+static bool startsWith(string const &str, string const &start)
+{
+	if (str.length() >= start.length())
+		return (str.compare(0, start.length(), start) == 0);
+	
+	return false;
+}
+
 static bool endsWith(string const &str, string const &ending)
 {
 	if (str.length() >= ending.length())
@@ -28,27 +36,27 @@ int main(int argc, char** argv)
 	string progname = argv[1];
 	if (endsWith(progname, "nvcc"))
 	{
-		bool unopt = false, opt = false;
+		string unopt, opt;
 		for (int i = 1; i < argc; i++)
 		{
 			string arg = argv[i];
-			if (arg == "--nvcc-llvm-ir-unopt")
+			if (startsWith(arg, "--nvcc-llvm-ir-unopt="))
 			{
-				unopt = true;
+				unopt = arg.substr(string("--nvcc-llvm-ir-unopt=").length());
 				continue;
 			}
-			if (arg == "--nvcc-llvm-ir-opt")
+			if (startsWith(arg, "--nvcc-llvm-ir-opt="))
 			{
-				opt = false;
+				opt = arg.substr(string("--nvcc-llvm-ir-opt=").length());
 				continue;
 			}
 		}
 
 		// Cannot be both unopt and opt at the same time.
-		if (unopt)
-			ss << "CICC_MODIFY_UNOPT_MODULE=1 ";
-		else if (opt)
-			ss << "CICC_MODIFY_OPT_MODULE=1 ";
+		if (unopt != "")
+			ss << "CICC_MODIFY_UNOPT_MODULE=" << unopt << " ";
+		else if (opt != "")
+			ss << "CICC_MODIFY_OPT_MODULE=" << opt << " ";
 
 		ss << "LD_PRELOAD=" << LIBNVCC << " " << argv[1];
 	}
@@ -56,9 +64,9 @@ int main(int argc, char** argv)
 	for (int i = 2; i < argc; i++)
 	{
 		string arg = argv[i];
-		if (arg == "--nvcc-llvm-ir-unopt")
+		if (startsWith(arg, "--nvcc-llvm-ir-unopt="))
 			continue;
-		if (arg == "--nvcc-llvm-ir-opt")
+		if (startsWith(arg, "--nvcc-llvm-ir-opt="))
 			continue;
 
 		ss << " " << arg;

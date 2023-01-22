@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	stringstream ss;
 
 	// Do not do anything further, if we are not running nvcc.
-	string progname = argv[0];
+	string progname = argv[1];
 	if (endsWith(progname, "nvcc"))
 	{
 		bool unopt = false, opt = false;
@@ -50,10 +50,10 @@ int main(int argc, char** argv)
 		else if (opt)
 			ss << "CICC_MODIFY_OPT_MODULE=1 ";
 
-		ss << "LD_PRELOAD=" << LIBNVCC << " " << argv[0];
+		ss << "LD_PRELOAD=" << LIBNVCC << " " << argv[1];
 	}
 
-	for (int i = 1; i < argc; i++)
+	for (int i = 2; i < argc; i++)
 	{
 		string arg = argv[i];
 		if (arg == "--nvcc-llvm-ir-unopt")
@@ -65,6 +65,7 @@ int main(int argc, char** argv)
 	}
 
 	string cmd = ss.str();
+	cout << cmd << endl;
 	return system(cmd.c_str());
 }
 

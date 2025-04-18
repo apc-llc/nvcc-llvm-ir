@@ -1,5 +1,7 @@
 # Enabling on-the-fly manipulations with LLVM IR code of CUDA sources
 
+![logo](logo.png)
+
 Largely thanks to [LLVM](http://llvm.org/), in recent years we've seen a significant increase of interest to domain-specific compilation tools research & development. With the release of PTX backends by NVIDIA (opensource [NVPTX](http://llvm.org/docs/NVPTXUsage.html) and proprietary [libNVVM](https://developer.nvidia.com/cuda-llvm-compiler)), construction of custom LLVM-driven compilers for generating GPU binaries also becomes possible. However, two questions are still remaining:
 
 1. How to customize the CUDA source compilation?
